@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
+    "build": "esbuild src/index.ts --bundle --format=esm --outfile=dist/_worker.js --platform=browser",
     "dev": "wrangler dev",
     "start": "wrangler dev",
     "test": "vitest"
@@ -11,6 +12,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240208.0",
     "@types/node": "^20.11.17",
+    "esbuild": "^0.27.2",
     "typescript": "^5.3.3",
     "vitest": "^1.2.2",
     "wrangler": "^4.54.0"
