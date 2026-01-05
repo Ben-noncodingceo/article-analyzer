@@ -1,0 +1,23 @@
+{
+  "name": "article-analyzer",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0",
+    "@types/node": "^20.11.17",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2",
+    "wrangler": "^4.54.0"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "hono": "^4.0.8",
+    "openai": "^4.28.0"
+  }
+}

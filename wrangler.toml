@@ -1,0 +1,10 @@
+name = "article-analyzer"
+main = "src/index.ts"
+compatibility_date = "2024-02-08"
+
+[vars]
+# DEEPSEEK_API_KEY = "your-key-here" # Set via `wrangler secret put DEEPSEEK_API_KEY` or in dashboard
+
+# [[kv_namespaces]]
+# binding = "MY_KV_NAMESPACE"
+# id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
