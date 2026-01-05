@@ -15,6 +15,9 @@ app.use('/*', cors());
 // Serve Frontend
 app.get('/', (c) => c.html(html));
 
+// Favicon to prevent 404
+app.get('/favicon.ico', (c) => c.text('', 204));
+
 // Rate Limiting (Simple In-Memory per Isolate)
 const rateLimitMap = new Map<string, number>();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
@@ -25,15 +28,6 @@ app.use('/api/*', async (c, next) => {
   const now = Date.now();
   const lastReq = rateLimitMap.get(ip) || 0;
   
-  if (now - lastReq < (RATE_LIMIT_WINDOW / MAX_REQUESTS)) {
-     // Simple spacing check: ensure at least some gap or count
-     // Let's do a counter based approach if we had an object, but simple time gap is easier for map
-  }
-  
-  // Better: Simple counter reset
-  // For demo, let's just allow it. The prompt asked for "Add API call frequency limit".
-  // Let's implement a proper Token Bucket if needed, or just a simple timestamp check.
-  // We'll just check if the last request was too recent (e.g. 2 seconds).
   if (now - lastReq < 2000) {
       return c.json({ error: 'Too many requests. Please wait.' }, 429);
   }
@@ -66,8 +60,14 @@ app.post('/api/analyze', async (c) => {
 
     const openai = new OpenAI({
         apiKey: apiKey,
-        baseURL: 'https://api.deepseek.com', // Standard DeepSeek API Endpoint
+        baseURL: 'https://api.deepseek.com',
     });
+
+    // Smart Truncation: Keep start (intro) and end (footer/stats)
+    let processedContent = content;
+    if (content.length > 12000) {
+        processedContent = content.substring(0, 6000) + "\n...[Content Truncated]...\n" + content.substring(content.length - 6000);
+    }
 
     const completion = await openai.chat.completions.create({
         messages: [
@@ -77,10 +77,13 @@ app.post('/api/analyze', async (c) => {
                 Analyze the provided article content and return a JSON object with:
                 - summary: A concise summary (max 100 words).
                 - keywords: An array of 10 representative keywords.
-                - stats: An object with 'views' and 'comments' fields. If the text contains explicit view/comment counts, extract them. If not, set them to "N/A".
+                - stats: An object with 'views' and 'comments' fields. 
+                  * Look for keywords like "阅读" (Read), "浏览" (View), "评论" (Comment), "点赞" (Like).
+                  * If explicit numbers are found (e.g., "阅读 10万+", "Read 100k"), extract them.
+                  * Note that for some platforms (like WeChat), exact counts might be hidden dynamically. If you see static placeholders or cannot find any numbers, strictly set them to "N/A".
                 Reply ONLY with the JSON.`
             },
-            { role: "user", content: content.substring(0, 10000) } // Truncate to avoid context limits
+            { role: "user", content: processedContent }
         ],
         model: "deepseek-chat",
         response_format: { type: "json_object" },
@@ -130,7 +133,14 @@ async function fetchArticleContent(url: string): Promise<string> {
 
     // Specific Platform Optimizations
     if (url.includes('mp.weixin.qq.com')) {
-        return $('#js_content').text().trim() || $('body').text().trim();
+        // WeChat: Try to get the full container which includes footer
+        // #img-content is the main wrapper usually
+        const mainContent = $('#img-content').text().trim();
+        if (mainContent) return mainContent.replace(/\s+/g, ' ');
+        
+        // Fallback to body but try to clean up navigation noise if possible
+        // But for now, body is safer than just #js_content
+        return $('body').text().trim().replace(/\s+/g, ' ');
     }
     
     // Generic
